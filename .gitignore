@@ -1,0 +1,73 @@
+# =========================
+# Mac OS İşletim Sistemi
+# =========================
+.DS_Store
+.AppleDouble
+.LSOverride
+
+# =========================
+# Python & Sanal Ortam
+# =========================
+venv/
+env/
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+
+# =========================
+# Ortam Değişkenleri (Gizlilik)
+# =========================
+.env
+.env.*
+secrets.json
+
+# =========================
+# Veri Setleri (GitHub boyut sınırları)
+# =========================
+data/
+datasets/
+*.zip
+*.tar
+*.tar.gz
+*.rar
+
+# =========================
+# Makine Öğrenmesi & YOLO Çıktıları
+# =========================
+# Model ağırlıkları çok yer kaplar
+models/weights/
+*.pt
+*.onnx
+*.weights
+*.h5
+
+# Ultralytics eğitim çıktıları
+runs/
+yolov8n.pt
+yolov8s.pt
+
+# =========================
+# Jupyter Notebook & Veri Analizi
+# =========================
+.ipynb_checkpoints/
+
+# =========================
+# IDE & Editör Ayarları
+# =========================
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# =========================
+# Docker & Diğerleri
+# =========================
+.dockerignore
+
+# =========================
+# Log Dosyaları & Geçici Dosyalar
+# =========================
+app_log.txt
+temp_images/
