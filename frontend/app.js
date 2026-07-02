@@ -6,11 +6,12 @@ const container = document.getElementById('container');
 const sendBtn = document.getElementById('sendBtn');
 const ctx = canvas.getContext('2d');
 
+// Oturum takibi için benzersiz ID oluşturma
 let sessionId = localStorage.getItem('sessionId') || Math.random().toString(36).substring(2, 15);
 localStorage.setItem('sessionId', sessionId);
 let lastLocation = "Location_Unknown"; 
 
-// --- YENİ: HİBRİT KONUM FONKSİYONU ---
+// Hibrid Konum Fonksiyonu: Önce GPS, başarısız olursa IP üzerinden konum alır
 async function getUserLocation() {
     return new Promise((resolve) => {
         if (!navigator.geolocation) {
@@ -21,9 +22,8 @@ async function getUserLocation() {
         navigator.geolocation.getCurrentPosition(
             (pos) => resolve(`${pos.coords.latitude},${pos.coords.longitude}`), 
             async (err) => {
-                console.warn(`Tarayıcı konumu alamadı (Hata: ${err.message}). IP konumuna geçiliyor...`);
+                console.warn(`Tarayıcı konumu alamadı. IP konumuna geçiliyor...`);
                 try {
-                    // B PLAN: Tarayıcı izni gerektirmeyen IP tabanlı konum
                     const ipRes = await fetch('https://ipapi.co/json/');
                     const ipData = await ipRes.json();
                     if (ipData.latitude && ipData.longitude) {
@@ -42,6 +42,7 @@ async function getUserLocation() {
 
 dropZone.addEventListener('click', () => fileInput.click());
 
+// Dosya seçildiğinde tetiklenir
 fileInput.addEventListener('change', async (e) => {
     const file = e.target.files[0];
     if (!file) return;
@@ -53,20 +54,17 @@ fileInput.addEventListener('change', async (e) => {
     canvas.width = img.clientWidth;
     canvas.height = img.clientHeight;
 
-    // YENİ: Akıllı Konum fonksiyonunu çağırıyoruz
     lastLocation = await getUserLocation();
 
     const formData = new FormData();
     formData.append('file', file);
 
     try {
+        // Backend'e analiz için görseli gönder
         const res = await fetch('http://127.0.0.1:8000/predict', { 
             method: 'POST', 
             body: formData,
-            headers: { 
-                'X-Session-ID': sessionId, 
-                'X-Location': lastLocation 
-            } 
+            headers: { 'X-Session-ID': sessionId, 'X-Location': lastLocation } 
         });
 
         if (!res.ok) throw new Error(`HTTP Hata Kodu: ${res.status}`);
@@ -74,6 +72,7 @@ fileInput.addEventListener('change', async (e) => {
         const data = await res.json();
         ctx.clearRect(0, 0, canvas.width, canvas.height);
         
+        // Tespit edilen alanları görsel üzerine çiz
         if (data.detections && data.detections.length > 0) {
             ctx.strokeStyle = '#ef4444';
             ctx.lineWidth = 4;
@@ -95,25 +94,23 @@ fileInput.addEventListener('change', async (e) => {
     }
 });
 
+// Belediye raporu gönderimi
 sendBtn.addEventListener('click', async () => {
     try {
         const response = await fetch('http://127.0.0.1:8000/report', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                session_id: sessionId,
-                location: lastLocation
-            })
+            body: JSON.stringify({ session_id: sessionId, location: lastLocation })
         });
         
         if (response.ok) {
-            alert("Rapor belediyeye iletildi, teşekkürler!");
+            alert("Rapor belediyeye iletildi!");
             sendBtn.style.display = 'none'; 
             location.reload(); 
         } else {
-            alert("Backend raporu alamadı. Sunucu açık mı kontrol et.");
+            alert("Sunucu raporu alamadı.");
         }
     } catch (err) {
-        alert("Rapor gönderilemedi. Bağlantı hatası.");
+        alert("Bağlantı hatası.");
     }
 });

@@ -7,7 +7,7 @@ from inference import detect_potholes
 
 app = FastAPI()
 
-# CORS Ayarları (Dokunma)
+# CORS: Frontend ve Backend'in farklı portlarda konuşabilmesi için izin tanımları
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -20,18 +20,19 @@ app.add_middleware(
 async def predict(request: Request, file: UploadFile = File(...)):
     try:
         session_id = request.headers.get("X-Session-ID", "unknown")
-        os.makedirs("temp_images", exist_ok=True)
+        os.makedirs("temp_images", exist_ok=True) # Geçici depolama
         file_path = os.path.join("temp_images", f"{session_id}.jpg")
         
         with open(file_path, "wb") as buffer:
             shutil.copyfileobj(file.file, buffer)
         
+        # YOLO ile analiz et ve sonuçları dön
         results = detect_potholes(file_path)
         return {"detections": results}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
-# 2. Endpoint: Raporlama (404 Hatasını Çözen Kısım)
+# 2. Endpoint: Raporlama
 @app.post("/report")
 async def report(request: Request):
     try:
@@ -39,7 +40,7 @@ async def report(request: Request):
         session_id = data.get("session_id", "unknown")
         location = data.get("location", "unknown")
         
-        # Log dosyasına yaz
+        # Verileri yerel bir metin dosyasına logla
         with open("app_log.txt", "a", encoding="utf-8") as f:
             f.write(f"{time.ctime()} | RAPORLANDI | Session: {session_id} | Loc: {location}\n")
             

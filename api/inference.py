@@ -1,13 +1,13 @@
 from ultralytics import YOLO
 
-# Modeli bir kere yükleyelim (M2 Mac üzerinde MPS ile çalışması için otomatik optimize eder)
+# Modelin hafızaya yüklenmesi
 model = YOLO("models/best.pt")
 
 def detect_potholes(image_path):
-    # Tahminleme yap
+    # Modelin görsel üzerinde çıkarım yapması (Inference)
     results = model(image_path)
     
-    # YOLO sonuçlarından tespit edilen nesnelerin bilgilerini al
+    # Tespit edilen nesnelerin sınıfını, güven skorunu ve kutu koordinatlarını çıkar
     detections = []
     for r in results:
         for box in r.boxes:
