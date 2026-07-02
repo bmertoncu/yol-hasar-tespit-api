@@ -1,3 +1,9 @@
+/**
+ * Yol Hasar Tespit Sistemi - Frontend Kontrolcüsü
+ * Sorumluluk: Konum verisi toplama, görsel yükleme, API haberleşmesi ve sonuç görselleştirme.
+ */
+
+// DOM Element Referansları
 const fileInput = document.getElementById('fileInput');
 const dropZone = document.getElementById('dropZone');
 const img = document.getElementById('img');
@@ -6,12 +12,19 @@ const container = document.getElementById('container');
 const sendBtn = document.getElementById('sendBtn');
 const ctx = canvas.getContext('2d');
 
-// Oturum takibi için benzersiz ID oluşturma
+// Sabitler
+const CONFIDENCE_THRESHOLD =0.75; // Modelin tespitlerine güven eşiği (%75)
+const API_BASE_URL = 'http://127.0.0.1:8000';
+
+// Oturum Yönetimi
 let sessionId = localStorage.getItem('sessionId') || Math.random().toString(36).substring(2, 15);
 localStorage.setItem('sessionId', sessionId);
-let lastLocation = "Location_Unknown"; 
+let lastLocation = "Location_Unknown";
 
-// Hibrid Konum Fonksiyonu: Önce GPS, başarısız olursa IP üzerinden konum alır
+/**
+ * Hibrid Konum Fonksiyonu: 
+ * Modern tarayıcı API'sini kullanır, başarısızlık durumunda IP üzerinden konum tahmini yapar.
+ */
 async function getUserLocation() {
     return new Promise((resolve) => {
         if (!navigator.geolocation) {
@@ -20,17 +33,13 @@ async function getUserLocation() {
         }
 
         navigator.geolocation.getCurrentPosition(
-            (pos) => resolve(`${pos.coords.latitude},${pos.coords.longitude}`), 
+            (pos) => resolve(`${pos.coords.latitude},${pos.coords.longitude}`),
             async (err) => {
-                console.warn(`Tarayıcı konumu alamadı. IP konumuna geçiliyor...`);
+                console.warn(`GPS erişimi reddedildi veya başarısız: ${err.message}. IP tabanlı servis kullanılıyor.`);
                 try {
-                    const ipRes = await fetch('https://ipapi.co/json/');
-                    const ipData = await ipRes.json();
-                    if (ipData.latitude && ipData.longitude) {
-                        resolve(`${ipData.latitude},${ipData.longitude}`);
-                    } else {
-                        resolve("Location_Fetch_Failed");
-                    }
+                    const response = await fetch('https://ipapi.co/json/');
+                    const data = await response.json();
+                    resolve(data.latitude && data.longitude ? `${data.latitude},${data.longitude}` : "Location_Fetch_Failed");
                 } catch (e) {
                     resolve("IP_API_Failed");
                 }
@@ -40,77 +49,81 @@ async function getUserLocation() {
     });
 }
 
+// Görsel Yükleme ve Analiz Akışı
 dropZone.addEventListener('click', () => fileInput.click());
 
-// Dosya seçildiğinde tetiklenir
 fileInput.addEventListener('change', async (e) => {
     const file = e.target.files[0];
     if (!file) return;
 
+    // Görseli arayüzde önizle
     img.src = URL.createObjectURL(file);
     container.style.display = 'block';
     await new Promise(resolve => img.onload = resolve);
     
+    // Canvas boyutlarını görsel ile eşitle
     canvas.width = img.clientWidth;
     canvas.height = img.clientHeight;
 
+    // Konum verisini güncelle
     lastLocation = await getUserLocation();
 
     const formData = new FormData();
     formData.append('file', file);
 
     try {
-        // Backend'e analiz için görseli gönder
-        const res = await fetch('http://127.0.0.1:8000/predict', { 
-            method: 'POST', 
+        // Backend'e analiz isteği gönder
+        const response = await fetch(`${API_BASE_URL}/predict`, {
+            method: 'POST',
             body: formData,
-            headers: { 'X-Session-ID': sessionId, 'X-Location': lastLocation } 
+            headers: { 'X-Session-ID': sessionId, 'X-Location': lastLocation }
         });
 
-        if (!res.ok) throw new Error(`HTTP Hata Kodu: ${res.status}`);
+        if (!response.ok) throw new Error(`Sunucu Hatası: ${response.status}`);
         
-        const data = await res.json();
+        const data = await response.json();
         ctx.clearRect(0, 0, canvas.width, canvas.height);
         
-        // Tespit edilen alanları görsel üzerine çiz
-        if (data.detections && data.detections.length > 0) {
+        // Tespitleri doğrula ve çiz
+        const validDetections = data.detections?.filter(d => d.confidence >= CONFIDENCE_THRESHOLD) || [];
+
+        if (validDetections.length > 0) {
             ctx.strokeStyle = '#ef4444';
             ctx.lineWidth = 4;
             const scaleX = canvas.width / img.naturalWidth;
             const scaleY = canvas.height / img.naturalHeight;
 
-            data.detections.forEach(det => {
+            validDetections.forEach(det => {
                 const [x1, y1, x2, y2] = Array.isArray(det.bbox[0]) ? det.bbox[0] : det.bbox;
                 ctx.strokeRect(x1 * scaleX, y1 * scaleY, (x2 - x1) * scaleX, (y2 - y1) * scaleY);
             });
-            sendBtn.style.display = 'block'; 
+            sendBtn.style.display = 'block';
         } else {
-            alert("Görselde çukur tespit edilemedi.");
-            location.reload(); 
+            alert("Herhangi bir çukur tespit edilemedi. Lütfen farklı bir açı deneyin.");
+            location.reload();
         }
     } catch (err) {
-        console.error("Detaylı Hata:", err);
-        alert("Analiz başarısız! Hata: " + err.message);
+        console.error("Analiz sürecinde hata:", err);
+        alert("Analiz başarısız oldu. Lütfen bağlantınızı kontrol edin.");
     }
 });
 
-// Belediye raporu gönderimi
+// Rapor Gönderme İşlemi
 sendBtn.addEventListener('click', async () => {
     try {
-        const response = await fetch('http://127.0.0.1:8000/report', {
+        const response = await fetch(`${API_BASE_URL}/report`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ session_id: sessionId, location: lastLocation })
         });
         
         if (response.ok) {
-            alert("Rapor belediyeye iletildi!");
-            sendBtn.style.display = 'none'; 
-            location.reload(); 
+            alert("Rapor belediyeye başarıyla iletildi. Katkılarınız için teşekkürler!");
+            location.reload();
         } else {
-            alert("Sunucu raporu alamadı.");
+            throw new Error("Rapor gönderimi başarısız.");
         }
     } catch (err) {
-        alert("Bağlantı hatası.");
+        alert("Bağlantı hatası: Rapor gönderilemedi.");
     }
 });
