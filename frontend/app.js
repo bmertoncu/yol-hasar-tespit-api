@@ -13,7 +13,7 @@ const sendBtn = document.getElementById('sendBtn');
 const ctx = canvas.getContext('2d');
 
 // Sabitler
-const CONFIDENCE_THRESHOLD =0.75; // Modelin tespitlerine güven eşiği (%75)
+const CONFIDENCE_THRESHOLD =0.71; // Modelin tespitlerine güven eşiği
 const API_BASE_URL = 'http://127.0.0.1:8000';
 
 // Oturum Yönetimi
