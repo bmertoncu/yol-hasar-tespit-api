@@ -37,7 +37,6 @@ datasets/
 # Makine Öğrenmesi & YOLO Çıktıları
 # =========================
 # Model ağırlıkları çok yer kaplar
-models/weights/
 *.pt
 *.onnx
 *.weights
