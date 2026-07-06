@@ -1,4 +1,4 @@
-from fastapi import FastAPI, UploadFile, File, Request, HTTPException
+from fastapi import FastAPI, UploadFile, File, Request, HTTPException, Header
 from fastapi.middleware.cors import CORSMiddleware
 import shutil
 import os
@@ -17,16 +17,17 @@ app.add_middleware(
 
 # 1. Endpoint: Görüntü Analizi
 @app.post("/predict")
-async def predict(request: Request, file: UploadFile = File(...)):
+async def predict(file: UploadFile = File(...), x_session_id: str = Header(None)):
     try:
-        session_id = request.headers.get("X-Session-ID", "unknown")
-        os.makedirs("temp_images", exist_ok=True) # Geçici depolama
+        # Header'dan gelen veriyi kullanıyoruz, yoksa 'unknown' atıyoruz
+        session_id = x_session_id if x_session_id else "unknown"
+        
+        os.makedirs("temp_images", exist_ok=True) 
         file_path = os.path.join("temp_images", f"{session_id}.jpg")
         
         with open(file_path, "wb") as buffer:
             shutil.copyfileobj(file.file, buffer)
         
-        # YOLO ile analiz et ve sonuçları dön
         results = detect_potholes(file_path)
         return {"detections": results}
     except Exception as e:
