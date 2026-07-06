@@ -1,3 +1,4 @@
+import os
 import threading
 import time
 from queue import Queue
@@ -15,7 +16,7 @@ FPS_TARGET = 30
 FRAME_DELAY = 1.0 / FPS_TARGET
 TARGET_SIZE = (640, 640)
 
-# Canlı yayında gecikme olmaması için kuyruğu 5 kare ile sınırlıyoruz
+# Video işlenirken kare kaçırmamak ama belleği de şişirmemek için kuyruk sınırı
 request_queue = Queue(maxsize=5)
 
 
@@ -23,7 +24,7 @@ request_queue = Queue(maxsize=5)
 # ARKA PLAN AĞ İŞÇİSİ (WORKER)
 # ==========================================
 def network_worker():
-    """Arka planda kuyruğa gelen kareleri API'ye gönderir."""
+    """Arka planda kuyruğa gelen video karelerini API'ye gönderir."""
     headers = {"X-Vehicle-ID": VEHICLE_ID, "x-auth-token": AUTH_TOKEN}
 
     while True:
@@ -50,24 +51,28 @@ def network_worker():
 
 
 # ==========================================
-# ANA KAMERA DÖNGÜSÜ
+# ANA VİDEO DÖNGÜSÜ
 # ==========================================
-def start_camera_stream():
-    cap = cv2.VideoCapture(0)
+def start_video_stream():
+    # Video dosyasının tam yolunu bulma
+    current_dir = os.path.dirname(os.path.abspath(__file__))
+    video_path = os.path.join(current_dir, "video.mp4")
+
+    cap = cv2.VideoCapture(video_path)
     if not cap.isOpened():
-        print("Hata: Süreklilik Kamerasına erişilemedi.")
+        print(f"Hata: Video dosyasına erişilemedi: {video_path}")
         return
 
     # Arka plan işçisini başlat
     worker_thread = threading.Thread(target=network_worker, daemon=True)
     worker_thread.start()
 
-    print("Kamera aktif. 30 FPS akış ve Arka Plan Analizi başlatıldı...")
+    print("Video akışı başlatıldı. 30 FPS simülasyonu ve Arka Plan Analizi aktif...")
     prev_time = 0
 
     try:
         while True:
-            # 30 FPS sabitleme mekanizması
+            # Gerçek zamanlı video oynatma simülasyonu (30 FPS)
             time_elapsed = time.time() - prev_time
             if time_elapsed < FRAME_DELAY:
                 time.sleep(FRAME_DELAY - time_elapsed)
@@ -76,18 +81,19 @@ def start_camera_stream():
 
             ret, frame = cap.read()
             if not ret:
-                continue
+                print("\nVideo başarıyla sona erdi.")
+                break
 
             # Görüntüyü işle ve göster
             resized_frame = cv2.resize(
                 frame, TARGET_SIZE, interpolation=cv2.INTER_AREA
             )
-            cv2.imshow("Sureklilik Kamerasi - 30 FPS", resized_frame)
+            cv2.imshow("Video Test Yayini - 30 FPS", resized_frame)
 
             # JPEG formatına sıkıştırma
             _, img_encoded = cv2.imencode(".jpg", resized_frame)
 
-            # Kuyruk dolu değilse güncel kareyi fırlat (Dolusa atla ki yayın geriden gelmesin)
+            # Kuyruk durumuna göre kareyi gönder
             if not request_queue.full():
                 request_queue.put_nowait(img_encoded)
 
@@ -95,7 +101,7 @@ def start_camera_stream():
                 break
 
     except KeyboardInterrupt:
-        print("\nKamera testi sonlandırıldı.")
+        print("\nVideo testi kullanıcı tarafından sonlandırıldı.")
     finally:
         request_queue.put(None)  # Worker thread'i kapat
         cap.release()
@@ -103,4 +109,4 @@ def start_camera_stream():
 
 
 if __name__ == "__main__":
-    start_camera_stream()
+    start_video_stream()
