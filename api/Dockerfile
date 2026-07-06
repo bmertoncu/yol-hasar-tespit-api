@@ -1,7 +1,7 @@
 FROM python:3.11
 
 # Sisteme OpenCV ve grafik kütüphaneleri için gerekli olan paketleri kur
-# libgl1-mesa-glx yerine libgl1 kullanıyoruz
+# libgl1-mesa-glx yerine libgl1 kullanıyoruz (yeni sürüm olduğu için yeni isimlendirme)
 RUN apt-get update && apt-get install -y \
     libgl1 \
     libglib2.0-0 \
