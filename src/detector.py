@@ -17,7 +17,7 @@ class PotholeDetector:
 
         # Mükerrer (Aynı) Çukurları Engelleme Ayarları
         self.last_detected_boxes = []  # Bir önceki karedeki çukurların hafızası
-        self.iou_threshold = 0.4  # %40 ve üzeri örtüşme aynı çukur sayılır
+        self.iou_threshold = 0.4  # %40 ve üzeri örtüşme aynı çukur sayılır (çok çalışmıyor gibi kontrol etmek lazım)
 
     def _calculate_iou(self, box1, box2):
         """İki kutu (bounding box) arasındaki Kesişim / Birleşim (IoU) oranını
