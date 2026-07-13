@@ -1,6 +1,6 @@
 /**
  * Yol Hasar Tespit Sistemi - Frontend Kontrolcüsü
- * Sorumluluk: Konum verisi toplama, görsel yükleme, API haberleşmesi ve sonuç görselleştirme.
+ * Sorumluluk: Konum verisi toplama, görsel yükleme, API haberleşmesi, güvenlik ve sonuç görselleştirme.
  */
 
 // DOM Element Referansları
@@ -13,13 +13,44 @@ const sendBtn = document.getElementById('sendBtn');
 const ctx = canvas.getContext('2d');
 
 // Sabitler
-const CONFIDENCE_THRESHOLD =0.71; // Modelin tespitlerine güven eşiği
+const CONFIDENCE_THRESHOLD = 0.71; // Modelin tespitlerine güven eşiği
 const API_BASE_URL = 'http://127.0.0.1:8000';
 
-// Oturum Yönetimi
+// Oturum ve Güvenlik Yönetimi
 let sessionId = localStorage.getItem('sessionId') || Math.random().toString(36).substring(2, 15);
 localStorage.setItem('sessionId', sessionId);
 let lastLocation = "Location_Unknown";
+let authToken = null; // JWT Token için değişken
+
+/**
+ * Otomatik Kimlik Doğrulama (Geliştirme / Prototip İçin)
+ * Sayfa yüklendiğinde arka planda API'den token alır.
+ */
+async function authenticateSystem() {
+    try {
+        const params = new URLSearchParams();
+        params.append('username', 'saha_araci');
+        params.append('password', 'adana123');
+
+        const response = await fetch(`${API_BASE_URL}/token`, {
+            method: 'POST',
+            body: params
+        });
+
+        if (response.ok) {
+            const data = await response.json();
+            authToken = data.access_token;
+            console.log("Sisteme başarıyla giriş yapıldı, yetki token'ı alındı.");
+        } else {
+            console.error("Kimlik doğrulama başarısız. API erişimi reddedilebilir.");
+        }
+    } catch (err) {
+        console.error("Yetkilendirme sunucusuna ulaşılamadı:", err);
+    }
+}
+
+// Sayfa yüklendiği gibi sessizce token al
+window.addEventListener('DOMContentLoaded', authenticateSystem);
 
 /**
  * Hibrid Konum Fonksiyonu: 
@@ -56,6 +87,12 @@ fileInput.addEventListener('change', async (e) => {
     const file = e.target.files[0];
     if (!file) return;
 
+    // Token kontrolü
+    if (!authToken) {
+        alert("Sisteme henüz güvenli bağlantı sağlanamadı, lütfen sayfayı yenileyin.");
+        return;
+    }
+
     // Görseli arayüzde önizle
     img.src = URL.createObjectURL(file);
     container.style.display = 'block';
@@ -72,11 +109,15 @@ fileInput.addEventListener('change', async (e) => {
     formData.append('file', file);
 
     try {
-        // Backend'e analiz isteği gönder
+        // Backend'e analiz isteği gönder (JWT Token Header'a Eklendi)
         const response = await fetch(`${API_BASE_URL}/predict`, {
             method: 'POST',
             body: formData,
-            headers: { 'X-Session-ID': sessionId, 'X-Location': lastLocation }
+            headers: { 
+                'X-Session-ID': sessionId, 
+                'X-Location': lastLocation,
+                'Authorization': `Bearer ${authToken}` // 401 Hatasını çözen güvenlik anahtarı
+            }
         });
 
         if (!response.ok) throw new Error(`Sunucu Hatası: ${response.status}`);
@@ -111,9 +152,13 @@ fileInput.addEventListener('change', async (e) => {
 // Rapor Gönderme İşlemi
 sendBtn.addEventListener('click', async () => {
     try {
+        // Backend'e rapor isteği gönder (JWT Token Header'a Eklendi)
         const response = await fetch(`${API_BASE_URL}/report`, {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
+            headers: { 
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${authToken}` // 401 Hatasını çözen güvenlik anahtarı
+            },
             body: JSON.stringify({ session_id: sessionId, location: lastLocation })
         });
         
