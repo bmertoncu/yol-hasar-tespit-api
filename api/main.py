@@ -11,7 +11,7 @@ from slowapi.errors import RateLimitExceeded
 
 # --- AYARLAR ---
 load_dotenv()
-FRONTEND_URL = os.getenv("FRONTEND_URL", "https://yol-hasar-tespit-api.vercel.app")
+FRONTEND_URL = os.getenv("FRONTEND_URL")
 
 # Hız sınırlayıcı (Dakikada en fazla 10 analiz)
 limiter = Limiter(key_func=get_remote_address)
