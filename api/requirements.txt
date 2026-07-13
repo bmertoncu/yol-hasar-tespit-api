@@ -1,5 +1,9 @@
 fastapi
 uvicorn
-ultralytics
 python-multipart
+pyjwt
+pydantic
+python-dotenv
+ultralytics
+opencv-python-headless
 slowapi
