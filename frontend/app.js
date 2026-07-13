@@ -21,11 +21,12 @@ localStorage.setItem('sessionId', sessionId);
 let lastLocation = "Location_Unknown";
 
 /**
- * Konum Fonksiyonu
+ * Konum Fonksiyonu (Yüksek Hassasiyet ve İzin Kontrolü)
  */
 async function getUserLocation() {
     return new Promise((resolve) => {
         if (!navigator.geolocation) {
+            alert("Cihazınız konum servisini desteklemiyor.");
             resolve("Geolocation_Not_Supported");
             return;
         }
@@ -33,7 +34,15 @@ async function getUserLocation() {
         navigator.geolocation.getCurrentPosition(
             (pos) => resolve(`${pos.coords.latitude},${pos.coords.longitude}`),
             async (err) => {
-                console.warn(`GPS reddedildi. IP tabanlı servis kullanılıyor.`);
+                // Kullanıcı izin vermediyse veya süre yetmediyse net bir uyarı çıkar
+                if (err.code === err.PERMISSION_DENIED) {
+                    alert("Uyarı: Konum izni vermediğiniz için raporunuzun konumu yaklaşık olarak (IP üzerinden) hesaplanacaktır. Lütfen tarayıcı ayarlarından konum erişimine izin verin.");
+                } else if (err.code === err.TIMEOUT) {
+                    console.warn("GPS sinyali bulma süresi aşıldı.");
+                }
+
+                console.warn(`GPS reddedildi/başarısız: ${err.message}. IP tabanlı servis kullanılıyor.`);
+                
                 try {
                     const response = await fetch('https://ipapi.co/json/');
                     const data = await response.json();
@@ -42,7 +51,8 @@ async function getUserLocation() {
                     resolve("IP_API_Failed");
                 }
             },
-            { enableHighAccuracy: false, timeout: 5000, maximumAge: 0 }
+            // KRİTİK GÜNCELLEME: Yüksek hassasiyet açıldı ve bekleme süresi 15 saniyeye çıkarıldı
+            { enableHighAccuracy: true, timeout: 15000, maximumAge: 0 }
         );
     });
 }
