@@ -14,7 +14,7 @@ const ctx = canvas.getContext('2d');
 // Sabitler
 const CONFIDENCE_THRESHOLD = 0.71; 
 
-const API_BASE_URL = 'https://true-carrots-repeat.loca.lt';
+const API_BASE_URL = 'https://lovely-turkeys-stick.loca.lt';
 
 // Oturum ve Güvenlik Yönetimi
 let sessionId = localStorage.getItem('sessionId') || Math.random().toString(36).substring(2, 15);
