@@ -13,7 +13,7 @@ const ctx = canvas.getContext('2d');
 
 // Sabitler
 const CONFIDENCE_THRESHOLD = 0.71; 
-const API_BASE_URL = 'https://neat-windows-guess.loca.lt'; // Kendi Localtunnel adresini buraya yazmayı unutma
+const API_BASE_URL = 'https://funny-mice-care.loca.lt'; // Kendi Localtunnel adresini buraya yazmayı unutma
 
 // Oturum Yönetimi
 let sessionId = localStorage.getItem('sessionId') || Math.random().toString(36).substring(2, 15);
