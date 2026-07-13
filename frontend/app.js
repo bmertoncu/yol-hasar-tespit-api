@@ -56,7 +56,9 @@ fileInput.addEventListener('change', async (e) => {
         const [lat, lon] = lastLocation.split(',').map(Number);
         if (lat < ADANA_BOUNDS.minLat || lat > ADANA_BOUNDS.maxLat || 
             lon < ADANA_BOUNDS.minLon || lon > ADANA_BOUNDS.maxLon) {
-            alert("Üzgünüz, sistemimiz şu an sadece Adana sınırları içerisinde hizmet vermektedir.");
+            console.log("Tespit edilen konum:", lat, lon);
+            alert("Fotoğrafınız Adana dışında tespit edildi: " + lat + ", " + lon);
+            
             location.reload();
             return;
         }
