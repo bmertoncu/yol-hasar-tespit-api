@@ -9,33 +9,39 @@ const ctx = canvas.getContext('2d');
 
 // Sabitler
 const CONFIDENCE_THRESHOLD = 0.71;
-const API_BASE_URL = ' https://vowel-amaze-cackle.ngrok-free.dev'; // Ngrok adresin neyse o kalmalı
+const API_BASE_URL = 'https://vowel-amaze-cackle.ngrok-free.dev';
 const ADANA_BOUNDS = { minLat: 36.0, maxLat: 38.5, minLon: 34.0, maxLon: 37.0 };
 
 let sessionId = localStorage.getItem('sessionId') || Math.random().toString(36).substring(2, 15);
 localStorage.setItem('sessionId', sessionId);
-let lastLocation = "Konum belirlenemedi";
+let lastLocation = null;
 
 /**
- * Konum Fonksiyonu - Kapalı Alanlara Uyumlu ve Toleranslı
+ * Konum Fonksiyonu - Tüm Tarayıcılar İçin Evrensel Hata Yakalama
  */
 async function getUserLocation() {
     return new Promise((resolve) => {
         if (!navigator.geolocation) {
-            resolve("Tarayıcı Desteklemiyor");
+            resolve({ error: "Tarayıcı Desteklemiyor" });
             return;
         }
 
         navigator.geolocation.getCurrentPosition(
-            (pos) => resolve(`${pos.coords.latitude},${pos.coords.longitude}`),
+            (pos) => {
+                resolve({ lat: pos.coords.latitude, lon: pos.coords.longitude });
+            },
             (err) => {
-                console.warn("GPS hatası:", err.message);
-                resolve("Konum Engellendi");
+                let reason = "Bilinmeyen Hata";
+                if (err.code === 1) reason = "İzin Reddedildi";
+                if (err.code === 2) reason = "Konum Bulunamadı (Sinyal Yok)";
+                if (err.code === 3) reason = "Zaman Aşımı";
+                
+                resolve({ error: reason });
             },
             { 
-                enableHighAccuracy: false, // Kapalı alanda Wi-Fi üzerinden bulmasına izin verir
-                timeout: 15000,           
-                maximumAge: 60000         // Son 1 dakika içindeki konumu kullanabilir
+                enableHighAccuracy: true, 
+                timeout: 20000,           
+                maximumAge: 0             
             }
         );
     });
@@ -49,17 +55,27 @@ fileInput.addEventListener('change', async (e) => {
     if (!file) return;
 
     // 1. Konum Kontrol Döngüsü
-    let loc = await getUserLocation();
+    let locResult = await getUserLocation();
     
-    // Eğer konum WhatsApp veya reddetme yüzünden alınamadıysa detaylı uyar
-    if (loc === "Konum Engellendi" || loc === "Tarayıcı Desteklemiyor") {
-        alert("Konumunuza erişilemedi! Lütfen linki WhatsApp içinden değil, doğrudan Chrome veya Safari uygulamasında açtığınızdan emin olun. Adres çubuğundan konum izni vermeniz gerekebilir.");
+    // Evrensel Hata Yönetimi: Tüm platformlar (iOS, Android, Chrome, WhatsApp vb.) için kapsayıcı uyarı
+    if (locResult.error) {
+        if (locResult.error === "İzin Reddedildi") {
+            alert(
+                "Konum izni reddedildi veya uygulama tarafından engellendi!\n\n" +
+                "👉 Linki WhatsApp/Instagram içinden açtıysanız, menüden 'Tarayıcıda Aç' (Chrome/Safari) seçeneğini kullanın.\n" +
+                "👉 Normal tarayıcıdaysanız, adres çubuğundaki 'Kilit' veya 'aA' simgesine tıklayarak konum erişimine izin verin."
+            );
+        } else {
+            alert(`Konum alınamadı: ${locResult.error}. Lütfen cihazınızın Konum (GPS) özelliğinin açık olduğundan emin olup tekrar deneyin.`);
+        }
         location.reload(); 
         return;
     }
 
     // 2. Adana Sınır Kontrolü
-    const [lat, lon] = loc.split(',').map(Number);
+    const lat = locResult.lat;
+    const lon = locResult.lon;
+    
     if (lat < ADANA_BOUNDS.minLat || lat > ADANA_BOUNDS.maxLat || 
         lon < ADANA_BOUNDS.minLon || lon > ADANA_BOUNDS.maxLon) {
         alert("Sistemimiz şu an sadece Adana sınırları içinde çalışmaktadır.");
@@ -67,7 +83,7 @@ fileInput.addEventListener('change', async (e) => {
         return;
     }
 
-    lastLocation = loc;
+    lastLocation = `${lat},${lon}`;
 
     // 3. Görseli İşle
     img.src = URL.createObjectURL(file);
@@ -107,7 +123,7 @@ fileInput.addEventListener('change', async (e) => {
         }
     } catch (err) { 
         console.error("Detaylı Hata:", err);
-        alert("Sunucu ile bağlantı kurulamadı."); 
+        alert("Sunucu ile bağlantı kurulamadı. Lütfen internet bağlantınızı kontrol edin."); 
     }
 });
 
