@@ -3,14 +3,21 @@ from fastapi.middleware.cors import CORSMiddleware
 import shutil
 import os
 import time
-from inference import detect_potholes 
+from inference import detect_potholes
+from dotenv import load_dotenv
+
+# .env dosyasını hafızaya yükle
+load_dotenv()
+
+# .env içindeki FRONTEND_URL değerini çek (Eğer bulamazsa varsayılan olarak "*" yap)
+FRONTEND_URL = os.getenv("FRONTEND_URL", "*")
 
 app = FastAPI()
 
-# CORS: Frontend ve Backend'in farklı portlarda konuşabilmesi için izin tanımları
+# CORS Ayarları
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["FRONTEND_URL"],
+    allow_origins=[FRONTEND_URL],  # Tırnak işaretlerini KALDIRDIK ve değişkeni verdik
     allow_methods=["*"],
     allow_headers=["*"],
 )
