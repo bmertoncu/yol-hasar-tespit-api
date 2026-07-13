@@ -63,7 +63,7 @@ fileInput.addEventListener('change', async (e) => {
             alert(
                 "Konum izni reddedildi veya uygulama tarafından engellendi!\n\n" +
                 "👉 Linki WhatsApp/Instagram içinden açtıysanız, menüden 'Tarayıcıda Aç' (Chrome/Safari) seçeneğini kullanın.\n" +
-                "👉 Normal tarayıcıdaysanız, adres çubuğundaki 'Kilit' veya 'aA' simgesine tıklayarak konum erişimine izin verin."
+                "👉 Normal tarayıcıdaysanız, adres çubuğundaki 'Kilit' veya adres çubuğundaki bilgi simgesine tıklayarak konum erişimine izin verin."
             );
         } else {
             alert(`Konum alınamadı: ${locResult.error}. Lütfen cihazınızın Konum (GPS) özelliğinin açık olduğundan emin olup tekrar deneyin.`);
