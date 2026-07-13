@@ -1,6 +1,5 @@
 /**
  * Yol Hasar Tespit Sistemi - Frontend Kontrolcüsü
- * Sorumluluk: Konum verisi toplama, görsel yükleme, API haberleşmesi ve sonuç görselleştirme.
  */
 
 // DOM Element Referansları
@@ -13,17 +12,46 @@ const sendBtn = document.getElementById('sendBtn');
 const ctx = canvas.getContext('2d');
 
 // Sabitler
-const CONFIDENCE_THRESHOLD =0.71; // Modelin tespitlerine güven eşiği
-const API_BASE_URL = 'http://127.0.0.1:8000';
+const CONFIDENCE_THRESHOLD = 0.71; 
 
-// Oturum Yönetimi
+const API_BASE_URL = 'https://true-carrots-repeat.loca.lt';
+
+// Oturum ve Güvenlik Yönetimi
 let sessionId = localStorage.getItem('sessionId') || Math.random().toString(36).substring(2, 15);
 localStorage.setItem('sessionId', sessionId);
 let lastLocation = "Location_Unknown";
+let authToken = null; 
 
 /**
- * Hibrid Konum Fonksiyonu: 
- * Modern tarayıcı API'sini kullanır, başarısızlık durumunda IP üzerinden konum tahmini yapar.
+ * Otomatik Kimlik Doğrulama
+ */
+async function authenticateSystem() {
+    try {
+        const params = new URLSearchParams();
+        params.append('username', 'admin');
+        params.append('password', 'adana123');
+
+        const response = await fetch(`${API_BASE_URL}/token`, {
+            method: 'POST',
+            body: params
+        });
+
+        if (response.ok) {
+            const data = await response.json();
+            authToken = data.access_token;
+            console.log("Sisteme başarıyla giriş yapıldı.");
+        } else {
+            console.error("Kimlik doğrulama başarısız.");
+        }
+    } catch (err) {
+        console.error("Yetkilendirme sunucusuna ulaşılamadı:", err);
+    }
+}
+
+window.addEventListener('DOMContentLoaded', authenticateSystem);
+
+/**
+ * Konum Fonksiyonu
  */
 async function getUserLocation() {
     return new Promise((resolve) => {
@@ -35,7 +63,7 @@ async function getUserLocation() {
         navigator.geolocation.getCurrentPosition(
             (pos) => resolve(`${pos.coords.latitude},${pos.coords.longitude}`),
             async (err) => {
-                console.warn(`GPS erişimi reddedildi veya başarısız: ${err.message}. IP tabanlı servis kullanılıyor.`);
+                console.warn(`GPS reddedildi. IP tabanlı servis kullanılıyor.`);
                 try {
                     const response = await fetch('https://ipapi.co/json/');
                     const data = await response.json();
@@ -49,34 +77,38 @@ async function getUserLocation() {
     });
 }
 
-// Görsel Yükleme ve Analiz Akışı
+// Görsel Yükleme ve Analiz
 dropZone.addEventListener('click', () => fileInput.click());
 
 fileInput.addEventListener('change', async (e) => {
     const file = e.target.files[0];
     if (!file) return;
 
-    // Görseli arayüzde önizle
+    if (!authToken) {
+        alert("Sisteme güvenli bağlantı sağlanamadı, sayfayı yenileyin.");
+        return;
+    }
+
     img.src = URL.createObjectURL(file);
     container.style.display = 'block';
     await new Promise(resolve => img.onload = resolve);
     
-    // Canvas boyutlarını görsel ile eşitle
     canvas.width = img.clientWidth;
     canvas.height = img.clientHeight;
-
-    // Konum verisini güncelle
     lastLocation = await getUserLocation();
 
     const formData = new FormData();
     formData.append('file', file);
 
     try {
-        // Backend'e analiz isteği gönder
         const response = await fetch(`${API_BASE_URL}/predict`, {
             method: 'POST',
             body: formData,
-            headers: { 'X-Session-ID': sessionId, 'X-Location': lastLocation }
+            headers: { 
+                'X-Session-ID': sessionId, 
+                'X-Location': lastLocation,
+                'Authorization': `Bearer ${authToken}`
+            }
         });
 
         if (!response.ok) throw new Error(`Sunucu Hatası: ${response.status}`);
@@ -84,7 +116,6 @@ fileInput.addEventListener('change', async (e) => {
         const data = await response.json();
         ctx.clearRect(0, 0, canvas.width, canvas.height);
         
-        // Tespitleri doğrula ve çiz
         const validDetections = data.detections?.filter(d => d.confidence >= CONFIDENCE_THRESHOLD) || [];
 
         if (validDetections.length > 0) {
@@ -99,31 +130,34 @@ fileInput.addEventListener('change', async (e) => {
             });
             sendBtn.style.display = 'block';
         } else {
-            alert("Herhangi bir çukur tespit edilemedi. Lütfen farklı bir açı deneyin.");
+            alert("Çukur tespit edilemedi. Farklı bir açı deneyin.");
             location.reload();
         }
     } catch (err) {
-        console.error("Analiz sürecinde hata:", err);
-        alert("Analiz başarısız oldu. Lütfen bağlantınızı kontrol edin.");
+        console.error(err);
+        alert("Analiz başarısız oldu.");
     }
 });
 
-// Rapor Gönderme İşlemi
+// Rapor Gönderme
 sendBtn.addEventListener('click', async () => {
     try {
         const response = await fetch(`${API_BASE_URL}/report`, {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
+            headers: { 
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${authToken}`
+            },
             body: JSON.stringify({ session_id: sessionId, location: lastLocation })
         });
         
         if (response.ok) {
-            alert("Rapor belediyeye başarıyla iletildi. Katkılarınız için teşekkürler!");
+            alert("Rapor başarıyla iletildi!");
             location.reload();
         } else {
             throw new Error("Rapor gönderimi başarısız.");
         }
     } catch (err) {
-        alert("Bağlantı hatası: Rapor gönderilemedi.");
+        alert("Bağlantı hatası.");
     }
 });
