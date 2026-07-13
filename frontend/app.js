@@ -9,7 +9,7 @@ const ctx = canvas.getContext('2d');
 
 // Sabitler
 const CONFIDENCE_THRESHOLD = 0.71;
-const API_BASE_URL = ' https://vowel-amaze-cackle.ngrok-free.dev'; // Aktif tünel adresin
+const API_BASE_URL = 'https://vowel-amaze-cackle.ngrok-free.dev'; // Aktif tünel adresin
 const ADANA_BOUNDS = { minLat: 36.0, maxLat: 38.5, minLon: 34.0, maxLon: 37.0 };
 
 let sessionId = localStorage.getItem('sessionId') || Math.random().toString(36).substring(2, 15);
