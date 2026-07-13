@@ -10,7 +10,7 @@ app = FastAPI()
 # CORS: Frontend ve Backend'in farklı portlarda konuşabilmesi için izin tanımları
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["FRONTEND_URL "],
+    allow_origins=["FRONTEND_URL"],
     allow_methods=["*"],
     allow_headers=["*"],
 )
