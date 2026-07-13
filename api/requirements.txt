@@ -3,3 +3,4 @@ uvicorn
 ultralytics
 python-multipart
 slowapi
+python-dotenv
