@@ -9,62 +9,68 @@ const ctx = canvas.getContext('2d');
 
 // Sabitler
 const CONFIDENCE_THRESHOLD = 0.71;
-const API_BASE_URL = ' https://cute-buttons-do.loca.lt'; // Kendi güncel tünel adresini buraya yaz
-const ADANA_BOUNDS = {
-    minLat: 36.0, maxLat: 38.5,
-    minLon: 34.0, maxLon: 37.0
-};
+const API_BASE_URL = 'https://cute-buttons-do.loca.lt'; 
+const ADANA_BOUNDS = { minLat: 36.0, maxLat: 38.5, minLon: 34.0, maxLon: 37.0 };
 
-// Oturum ve Konum
 let sessionId = localStorage.getItem('sessionId') || Math.random().toString(36).substring(2, 15);
 localStorage.setItem('sessionId', sessionId);
-let lastLocation = "Location_Unknown";
+let lastLocation = null;
 
 /**
- * Konum Fonksiyonu
+ * Konum Fonksiyonu - Hata durumunda tekrar deneme mekanizmalı
  */
 async function getUserLocation() {
     return new Promise((resolve) => {
         if (!navigator.geolocation) {
-            resolve("Geolocation_Not_Supported");
+            resolve("Error: Not Supported");
             return;
         }
+
         navigator.geolocation.getCurrentPosition(
             (pos) => resolve(`${pos.coords.latitude},${pos.coords.longitude}`),
-            async () => {
+            async (err) => {
+                // Eğer izin verilmediyse veya hata oluştuysa IP tabanlı dene
                 try {
                     const response = await fetch('https://ipapi.co/json/');
                     const data = await response.json();
-                    resolve(data.latitude && data.longitude ? `${data.latitude},${data.longitude}` : "Location_Fetch_Failed");
-                } catch (e) { resolve("IP_API_Failed"); }
+                    resolve(data.latitude ? `${data.latitude},${data.longitude}` : "Error: No Location");
+                } catch (e) { resolve("Error: No Location"); }
             },
-            { enableHighAccuracy: true, timeout: 15000, maximumAge: 0 }
+            { enableHighAccuracy: true, timeout: 10000 }
         );
     });
 }
 
-// Görsel Yükleme ve Adana Sınır Kontrolü
+// Görsel Yükleme
 dropZone.addEventListener('click', () => fileInput.click());
 
 fileInput.addEventListener('change', async (e) => {
     const file = e.target.files[0];
     if (!file) return;
 
-    // 1. Konum Al ve Sınır Kontrolü Yap
-    lastLocation = await getUserLocation();
-    if (lastLocation !== "Location_Fetch_Failed" && lastLocation !== "IP_API_Failed") {
-        const [lat, lon] = lastLocation.split(',').map(Number);
-        if (lat < ADANA_BOUNDS.minLat || lat > ADANA_BOUNDS.maxLat || 
-            lon < ADANA_BOUNDS.minLon || lon > ADANA_BOUNDS.maxLon) {
-            console.log("Tespit edilen konum:", lat, lon);
-            alert("Fotoğrafınız Adana dışında tespit edildi. Lütfen Adana sınırları içindeyken bir fotoğraf yükleyin.");
-            
-            location.reload();
-            return;
+    // 1. Konum Kontrol Döngüsü
+    let loc = await getUserLocation();
+    
+    // Eğer konum alınamadıysa kullanıcıya bildir ve tekrar denemesini iste
+    if (loc.startsWith("Error")) {
+        const retry = confirm("Konumunuzu algılayamadık. Lütfen konum servislerine izin verin ve tekrar deneyin.");
+        if (retry) {
+            location.reload(); // Sayfayı yenileyerek tekrar konum izni tetikle
         }
+        return;
     }
 
-    // 2. Görseli İşle
+    // 2. Adana Sınır Kontrolü
+    const [lat, lon] = loc.split(',').map(Number);
+    if (lat < ADANA_BOUNDS.minLat || lat > ADANA_BOUNDS.maxLat || 
+        lon < ADANA_BOUNDS.minLon || lon > ADANA_BOUNDS.maxLon) {
+        alert("Sistemimiz şu an sadece Adana sınırları içinde çalışmaktadır.");
+        return;
+    }
+
+    lastLocation = loc;
+
+    // 3. Görseli İşle
     img.src = URL.createObjectURL(file);
     container.style.display = 'block';
     await new Promise(resolve => img.onload = resolve);
@@ -98,9 +104,8 @@ fileInput.addEventListener('change', async (e) => {
             sendBtn.style.display = 'block';
         } else {
             alert("Çukur tespit edilemedi.");
-            location.reload();
         }
-    } catch (err) { alert("Analiz başarısız oldu."); }
+    } catch (err) { alert("Sunucu ile bağlantı kurulamadı."); }
 });
 
 // Rapor Gönderme
@@ -115,5 +120,5 @@ sendBtn.addEventListener('click', async () => {
             alert("Rapor başarıyla iletildi!");
             location.reload();
         }
-    } catch (err) { alert("Bağlantı hatası."); }
+    } catch (err) { alert("Rapor gönderilemedi."); }
 });
