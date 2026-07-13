@@ -17,7 +17,7 @@ localStorage.setItem('sessionId', sessionId);
 let lastLocation = null;
 
 /**
- * Konum Fonksiyonu - İki Aşamalı Karma (Hybrid) Sistem
+ * Konum Fonksiyonu - Evrensel ve Tarayıcı Dostu
  */
 async function getUserLocation() {
     return new Promise((resolve) => {
@@ -26,24 +26,23 @@ async function getUserLocation() {
             return;
         }
 
-        // 1. AŞAMA: Önce Yüksek Hassasiyet (Gerçek GPS) Dene
+        // Tarayıcının kendi aklına bırakıyoruz: Cihaz Wi-Fi, Baz İstasyonu veya GPS ne bulursa onu kullanır
         navigator.geolocation.getCurrentPosition(
             (pos) => resolve({ lat: pos.coords.latitude, lon: pos.coords.longitude }),
             (err) => {
-                console.warn("GPS bulunamadı, Wi-Fi/Baz istasyonu moduna geçiliyor...");
+                console.warn("Konum reddedildi veya bulunamadı. Hata Kodu:", err.code);
+                let reason = "Konum sinyali alınamadı (Cihaz yerinizi tespit edemiyor)";
+                if (err.code === 1) reason = "İzin Reddedildi";
+                if (err.code === 3) reason = "Zaman Aşımı";
                 
-                // 2. AŞAMA: GPS başarısız olursa Düşük Hassasiyet (Esnek Mod) ile tekrar dene
-                navigator.geolocation.getCurrentPosition(
-                    (posFallback) => resolve({ lat: posFallback.coords.latitude, lon: posFallback.coords.longitude }),
-                    (errFallback) => {
-                        let reason = "Konum Bulunamadı";
-                        if (errFallback.code === 1) reason = "İzin Reddedildi";
-                        resolve({ error: reason });
-                    },
-                    { enableHighAccuracy: false, timeout: 15000, maximumAge: 60000 } // Esnek ayarlar
-                );
+                resolve({ error: reason });
             },
-            { enableHighAccuracy: true, timeout: 7000, maximumAge: 0 } // İlk 7 saniye zorla
+            // En stabil ayarlar (Spam yok, iç içe çağrı yok)
+            { 
+                enableHighAccuracy: false, // Tarayıcıyı GPS aramaya zorlamaz, ne bulursa kabul eder
+                timeout: 15000,            // 15 saniye arama izni verir
+                maximumAge: 0              // Her seferinde güncel konumu çeker
+            }
         );
     });
 }
@@ -63,10 +62,10 @@ fileInput.addEventListener('change', async (e) => {
         if (locResult.error === "İzin Reddedildi") {
             alert(
                 "Konum izni reddedildi!\n\n" +
-                "Lütfen adres çubuğundaki 'Kilit' veya 'aA' simgesine tıklayarak konum erişimine izin verin. Linki WhatsApp'tan açtıysanız normal Safari/Chrome'a geçin."
+                "Lütfen adres çubuğundaki 'Kilit' veya 'aA' simgesine tıklayarak konum erişimine izin verin. (Linki WhatsApp'tan açtıysanız normal Safari/Chrome'a geçin)."
             );
         } else {
-            alert("Konum sinyali alınamadı. Lütfen cihazınızın konum servislerinin açık olduğundan emin olun.");
+            alert(`Sistem hatası: ${locResult.error}. Lütfen cihazınızın konum servislerinin açık olduğundan emin olun.`);
         }
         location.reload(); 
         return;
