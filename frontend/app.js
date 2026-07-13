@@ -9,7 +9,7 @@ const ctx = canvas.getContext('2d');
 
 // Sabitler
 const CONFIDENCE_THRESHOLD = 0.71;
-const API_BASE_URL = 'https://vowel-amaze-cackle.ngrok-free.dev';
+const API_BASE_URL = 'https://true-dingos-eat.loca.lt'; // Aktif tünel adresin
 const ADANA_BOUNDS = { minLat: 36.0, maxLat: 38.5, minLon: 34.0, maxLon: 37.0 };
 
 let sessionId = localStorage.getItem('sessionId') || Math.random().toString(36).substring(2, 15);
@@ -17,7 +17,7 @@ localStorage.setItem('sessionId', sessionId);
 let lastLocation = null;
 
 /**
- * Konum Fonksiyonu - Tüm Tarayıcılar İçin Evrensel Hata Yakalama
+ * Konum Fonksiyonu - İki Aşamalı Karma (Hybrid) Sistem
  */
 async function getUserLocation() {
     return new Promise((resolve) => {
@@ -26,23 +26,24 @@ async function getUserLocation() {
             return;
         }
 
+        // 1. AŞAMA: Önce Yüksek Hassasiyet (Gerçek GPS) Dene
         navigator.geolocation.getCurrentPosition(
-            (pos) => {
-                resolve({ lat: pos.coords.latitude, lon: pos.coords.longitude });
-            },
+            (pos) => resolve({ lat: pos.coords.latitude, lon: pos.coords.longitude }),
             (err) => {
-                let reason = "Bilinmeyen Hata";
-                if (err.code === 1) reason = "İzin Reddedildi";
-                if (err.code === 2) reason = "Konum Bulunamadı (Sinyal Yok)";
-                if (err.code === 3) reason = "Zaman Aşımı";
+                console.warn("GPS bulunamadı, Wi-Fi/Baz istasyonu moduna geçiliyor...");
                 
-                resolve({ error: reason });
+                // 2. AŞAMA: GPS başarısız olursa Düşük Hassasiyet (Esnek Mod) ile tekrar dene
+                navigator.geolocation.getCurrentPosition(
+                    (posFallback) => resolve({ lat: posFallback.coords.latitude, lon: posFallback.coords.longitude }),
+                    (errFallback) => {
+                        let reason = "Konum Bulunamadı";
+                        if (errFallback.code === 1) reason = "İzin Reddedildi";
+                        resolve({ error: reason });
+                    },
+                    { enableHighAccuracy: false, timeout: 15000, maximumAge: 60000 } // Esnek ayarlar
+                );
             },
-            { 
-                enableHighAccuracy: false, 
-                timeout: 20000,           
-                maximumAge: 0             
-            }
+            { enableHighAccuracy: true, timeout: 7000, maximumAge: 0 } // İlk 7 saniye zorla
         );
     });
 }
@@ -54,19 +55,18 @@ fileInput.addEventListener('change', async (e) => {
     const file = e.target.files[0];
     if (!file) return;
 
-    // 1. Konum Kontrol Döngüsü
+    // 1. Konum Kontrol
     let locResult = await getUserLocation();
     
-    // Evrensel Hata Yönetimi: Tüm platformlar (iOS, Android, Chrome, WhatsApp vb.) için kapsayıcı uyarı
+    // Hata Yönetimi
     if (locResult.error) {
         if (locResult.error === "İzin Reddedildi") {
             alert(
-                "Konum izni reddedildi veya uygulama tarafından engellendi!\n\n" +
-                "👉 Linki WhatsApp/Instagram içinden açtıysanız, menüden 'Tarayıcıda Aç' (Chrome/Safari) seçeneğini kullanın.\n" +
-                "👉 Normal tarayıcıdaysanız, adres çubuğundaki 'Kilit' veya adres çubuğundaki bilgi simgesine tıklayarak konum erişimine izin verin."
+                "Konum izni reddedildi!\n\n" +
+                "Lütfen adres çubuğundaki 'Kilit' veya 'aA' simgesine tıklayarak konum erişimine izin verin. Linki WhatsApp'tan açtıysanız normal Safari/Chrome'a geçin."
             );
         } else {
-            alert(`Konum alınamadı: ${locResult.error}. Lütfen cihazınızın Konum (GPS) özelliğinin açık olduğundan emin olup tekrar deneyin.`);
+            alert("Konum sinyali alınamadı. Lütfen cihazınızın konum servislerinin açık olduğundan emin olun.");
         }
         location.reload(); 
         return;
@@ -123,7 +123,7 @@ fileInput.addEventListener('change', async (e) => {
         }
     } catch (err) { 
         console.error("Detaylı Hata:", err);
-        alert("Sunucu ile bağlantı kurulamadı. Lütfen internet bağlantınızı kontrol edin."); 
+        alert("Sunucu ile bağlantı kurulamadı."); 
     }
 });
 
