@@ -29,7 +29,7 @@ let authToken = null; // JWT Token için değişken
 async function authenticateSystem() {
     try {
         const params = new URLSearchParams();
-        params.append('username', 'saha_araci');
+        params.append('username', 'admin');
         params.append('password', 'adana123');
 
         const response = await fetch(`${API_BASE_URL}/token`, {

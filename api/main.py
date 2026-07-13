@@ -54,7 +54,7 @@ def verify_token(token: str = Depends(oauth2_scheme)):
 @app.post("/token", tags=["Güvenlik ve Yetkilendirme"])
 async def login_for_access_token(form_data: OAuth2PasswordRequestForm = Depends()):
     # Prototip için basit kontrol
-    if form_data.username == "saha_araci" and form_data.password == "adana123":
+    if form_data.username == "admin" and form_data.password == "adana123":
         access_token = create_access_token(data={"sub": form_data.username})
         return {"access_token": access_token, "token_type": "bearer"}
     raise HTTPException(status_code=400, detail="Hatalı kullanıcı adı veya şifre")
