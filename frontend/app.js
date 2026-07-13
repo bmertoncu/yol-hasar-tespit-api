@@ -39,7 +39,7 @@ async function getUserLocation() {
                 resolve({ error: reason });
             },
             { 
-                enableHighAccuracy: true, 
+                enableHighAccuracy: false, 
                 timeout: 20000,           
                 maximumAge: 0             
             }
