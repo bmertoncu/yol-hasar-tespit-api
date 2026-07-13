@@ -9,7 +9,7 @@ const ctx = canvas.getContext('2d');
 
 // Sabitler
 const CONFIDENCE_THRESHOLD = 0.71;
-const API_BASE_URL = 'https://neat-windows-guess.loca.lt'; // Kendi güncel tünel adresini buraya yaz
+const API_BASE_URL = ' https://ready-houses-sneeze.loca.lt'; // Kendi güncel tünel adresini buraya yaz
 const ADANA_BOUNDS = {
     minLat: 36.5, maxLat: 38.0,
     minLon: 34.8, maxLon: 36.2
