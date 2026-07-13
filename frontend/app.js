@@ -11,8 +11,8 @@ const ctx = canvas.getContext('2d');
 const CONFIDENCE_THRESHOLD = 0.71;
 const API_BASE_URL = ' https://ready-houses-sneeze.loca.lt'; // Kendi güncel tünel adresini buraya yaz
 const ADANA_BOUNDS = {
-    minLat: 36.5, maxLat: 38.0,
-    minLon: 34.8, maxLon: 36.2
+    minLat: 36.30, maxLat: 38.25,
+    minLon: 34.48, maxLon: 36.41
 };
 
 // Oturum ve Konum
