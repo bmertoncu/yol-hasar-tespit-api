@@ -117,7 +117,7 @@ sendBtn.addEventListener('click', async () => {
         });
         
         if (response.ok) {
-            alert("Rapor başarıyla iletildi!");
+            alert("Rapor belediyeye başarıyla iletildi! Katkılarınız için teşekkürler.");
             location.reload();
         } else {
             throw new Error("Rapor gönderimi başarısız.");
