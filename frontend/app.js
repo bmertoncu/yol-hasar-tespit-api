@@ -57,7 +57,7 @@ fileInput.addEventListener('change', async (e) => {
         if (lat < ADANA_BOUNDS.minLat || lat > ADANA_BOUNDS.maxLat || 
             lon < ADANA_BOUNDS.minLon || lon > ADANA_BOUNDS.maxLon) {
             console.log("Tespit edilen konum:", lat, lon);
-            alert("Fotoğrafınız Adana dışında tespit edildi: " + lat + ", " + lon);
+            alert("Fotoğrafınız Adana dışında tespit edildi. Lütfen Adana sınırları içindeyken bir fotoğraf yükleyin.");
             
             location.reload();
             return;
