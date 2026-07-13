@@ -15,7 +15,11 @@ load_dotenv()
 
 ENVIRONMENT = os.getenv("ENVIRONMENT", "development")
 SECRET_KEY = os.getenv("SECRET_KEY", "gizli_anahtar_yoksa_bunu_kullan")
-FRONTEND_URL = os.getenv("FRONTEND_URL", "http://127.0.0.1:5500") # Yerel test için varsayılan
+FRONTEND_URL = os.getenv("FRONTEND_URL", "*")
+
+# Admin bilgilerini .env dosyasından çekiyoruz (bulamazsa varsayılan olarak admin/adana123 kullanır)
+ADMIN_USERNAME = os.getenv("ADMIN_USERNAME", "admin")
+ADMIN_PASSWORD = os.getenv("ADMIN_PASSWORD", "adana123")
 
 ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_MINUTES = 60
@@ -28,18 +32,18 @@ app = FastAPI(
     redoc_url=None if ENVIRONMENT == "production" else "/redoc",
 )
 
-# CORS Ayarları: Sadece belirlediğimiz adreslerden gelen isteklere izin ver
+# CORS Ayarları: Çalışan güncel ayarlarına dokunmuyoruz
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"], #Geçiçi olarak tüm domainlere izin verir.
+    allow_origins=[FRONTEND_URL], 
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
 # --- GEÇİCİ VERİTABANI VE MODEL (TEST İÇİN) ---
-# Sunucu açık kaldığı sürece test kullanıcılarını burada tutacağız
+# Kullanıcı adı ve şifre artık .env üzerinden belirleniyor
 fake_users_db = {
-    "admin": "adana123" # Varsayılan test kullanıcımız
+    ADMIN_USERNAME: ADMIN_PASSWORD
 }
 
 class UserCreate(BaseModel):
@@ -75,7 +79,7 @@ async def register_test_user(user: UserCreate):
     fake_users_db[user.username] = user.password
     return {
         "durum": "başarılı", 
-        "mesaj": f"Kullanıcı '{user.username}' başarıyla oluşturuldu. Swagger UI üzerinden Authorize olabilirsiniz."
+        "mesaj": f"Kullanıcı '{user.username}' başarıyla oluşturuldu."
     }
 
 # --- KİMLİK DOĞRULAMA ENDPOINT'İ ---
