@@ -1,5 +1,5 @@
 /**
- * Yol Hasar Tespit Sistemi - Frontend Kontrolcüsü
+ * Yol Hasar Tespit Sistemi - Frontend Kontrolcüsü (Güvenlik Katmanı Kaldırıldı)
  */
 
 // DOM Element Referansları
@@ -13,42 +13,12 @@ const ctx = canvas.getContext('2d');
 
 // Sabitler
 const CONFIDENCE_THRESHOLD = 0.71; 
+const API_BASE_URL = 'https://yummy-dryers-search.loca.lt'; // Kendi Localtunnel adresini buraya yazmayı unutma
 
-const API_BASE_URL = 'https://fuzzy-bugs-write.loca.lt';
-
-// Oturum ve Güvenlik Yönetimi
+// Oturum Yönetimi
 let sessionId = localStorage.getItem('sessionId') || Math.random().toString(36).substring(2, 15);
 localStorage.setItem('sessionId', sessionId);
 let lastLocation = "Location_Unknown";
-let authToken = null; 
-
-/**
- * Otomatik Kimlik Doğrulama
- */
-async function authenticateSystem() {
-    try {
-        const params = new URLSearchParams();
-        params.append('username', 'admin');
-        params.append('password', 'adana123');
-
-        const response = await fetch(`${API_BASE_URL}/token`, {
-            method: 'POST',
-            body: params
-        });
-
-        if (response.ok) {
-            const data = await response.json();
-            authToken = data.access_token;
-            console.log("Sisteme başarıyla giriş yapıldı.");
-        } else {
-            console.error("Kimlik doğrulama başarısız.");
-        }
-    } catch (err) {
-        console.error("Yetkilendirme sunucusuna ulaşılamadı:", err);
-    }
-}
-
-window.addEventListener('DOMContentLoaded', authenticateSystem);
 
 /**
  * Konum Fonksiyonu
@@ -84,11 +54,6 @@ fileInput.addEventListener('change', async (e) => {
     const file = e.target.files[0];
     if (!file) return;
 
-    if (!authToken) {
-        alert("Sisteme güvenli bağlantı sağlanamadı, sayfayı yenileyin.");
-        return;
-    }
-
     img.src = URL.createObjectURL(file);
     container.style.display = 'block';
     await new Promise(resolve => img.onload = resolve);
@@ -107,7 +72,7 @@ fileInput.addEventListener('change', async (e) => {
             headers: { 
                 'X-Session-ID': sessionId, 
                 'X-Location': lastLocation,
-                'Authorization': `Bearer ${authToken}`
+                'Bypass-Tunnel-Reminder': 'true' // Localtunnel engelini aşmak için gerekli
             }
         });
 
@@ -146,7 +111,7 @@ sendBtn.addEventListener('click', async () => {
             method: 'POST',
             headers: { 
                 'Content-Type': 'application/json',
-                'Authorization': `Bearer ${authToken}`
+                'Bypass-Tunnel-Reminder': 'true' // Localtunnel engelini aşmak için gerekli
             },
             body: JSON.stringify({ session_id: sessionId, location: lastLocation })
         });
