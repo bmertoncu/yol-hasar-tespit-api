@@ -9,34 +9,34 @@ const ctx = canvas.getContext('2d');
 
 // Sabitler
 const CONFIDENCE_THRESHOLD = 0.71;
-const API_BASE_URL = 'https://vowel-amaze-cackle.ngrok-free.dev'; 
+const API_BASE_URL = 'https://true-dingos-eat.loca.lt'; // Ngrok'a geçince burayı güncellemeyi unutma
 const ADANA_BOUNDS = { minLat: 36.0, maxLat: 38.5, minLon: 34.0, maxLon: 37.0 };
 
 let sessionId = localStorage.getItem('sessionId') || Math.random().toString(36).substring(2, 15);
 localStorage.setItem('sessionId', sessionId);
-let lastLocation = null;
+let lastLocation = "Konum belirlenemedi";
 
 /**
- * Konum Fonksiyonu - Hata durumunda tekrar deneme mekanizmalı
+ * Konum Fonksiyonu - Sadece Gerçek GPS (IP Sapması İptal Edildi)
  */
 async function getUserLocation() {
     return new Promise((resolve) => {
         if (!navigator.geolocation) {
-            resolve("Error: Not Supported");
+            resolve("Konum belirlenemedi");
             return;
         }
 
         navigator.geolocation.getCurrentPosition(
             (pos) => resolve(`${pos.coords.latitude},${pos.coords.longitude}`),
-            async (err) => {
-                // Eğer izin verilmediyse veya hata oluştuysa IP tabanlı dene
-                try {
-                    const response = await fetch('https://ipapi.co/json/');
-                    const data = await response.json();
-                    resolve(data.latitude ? `${data.latitude},${data.longitude}` : "Error: No Location");
-                } catch (e) { resolve("Error: No Location"); }
+            (err) => {
+                console.warn("GPS hatası:", err.message);
+                resolve("Konum belirlenemedi");
             },
-            { enableHighAccuracy: true, timeout: 10000 }
+            { 
+                enableHighAccuracy: true, // Zorunlu olarak en doğru GPS donanımını kullanır
+                timeout: 15000,           // Aramak için 15 saniye mühlet verir
+                maximumAge: 0             // Önbellekteki eski konumu değil, o anki taze konumu ister
+            }
         );
     });
 }
@@ -51,16 +51,14 @@ fileInput.addEventListener('change', async (e) => {
     // 1. Konum Kontrol Döngüsü
     let loc = await getUserLocation();
     
-    // Eğer konum alınamadıysa kullanıcıya bildir ve tekrar denemesini iste
-    if (loc.startsWith("Error")) {
-        const retry = confirm("Konumunuzu algılayamadık. Lütfen konum servislerine izin verin ve tekrar deneyin.");
-        if (retry) {
-            location.reload(); // Sayfayı yenileyerek tekrar konum izni tetikle
-        }
+    // Eğer net GPS verisi alınamadıysa işlemi kesin olarak durdur
+    if (loc === "Konum belirlenemedi") {
+        alert("Konum belirlenemedi. Cihazınızın GPS (Konum) servisinin açık olduğundan ve tarayıcıya izin verdiğinizden emin olup tekrar deneyin.");
+        location.reload(); 
         return;
     }
 
-    // 2. Adana Sınır Kontrolü
+    // 2. Adana Sınır Kontrolü (Artık IP şaşması yok, %100 gerçek koordinat)
     const [lat, lon] = loc.split(',').map(Number);
     if (lat < ADANA_BOUNDS.minLat || lat > ADANA_BOUNDS.maxLat || 
         lon < ADANA_BOUNDS.minLon || lon > ADANA_BOUNDS.maxLon) {
@@ -104,8 +102,12 @@ fileInput.addEventListener('change', async (e) => {
             sendBtn.style.display = 'block';
         } else {
             alert("Çukur tespit edilemedi.");
+            location.reload();
         }
-    } catch (err) { alert("Sunucu ile bağlantı kurulamadı."); }
+    } catch (err) { 
+        console.error("Detaylı Hata:", err);
+        alert("Sunucu ile bağlantı kurulamadı. Tünel adresi aktif mi?"); 
+    }
 });
 
 // Rapor Gönderme
