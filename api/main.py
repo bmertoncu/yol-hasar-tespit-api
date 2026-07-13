@@ -18,7 +18,7 @@ SECRET_KEY = os.getenv("SECRET_KEY", "gizli_anahtar_yoksa_bunu_kullan")
 FRONTEND_URL = os.getenv("FRONTEND_URL", "*")
 
 # Admin bilgilerini .env dosyasından çekiyoruz (bulamazsa varsayılan olarak admin/adana123 kullanır)
-ADMIN_USERNAME = os.getenv("ADMIN_USERNAME", "admin")
+ADMIN_USERNAME = os.getenv("ADMIN_USERNAME", "admin") #çıkacak olan appte deneme kısımları kaldırılmalı
 ADMIN_PASSWORD = os.getenv("ADMIN_PASSWORD", "adana123")
 
 ALGORITHM = "HS256"
