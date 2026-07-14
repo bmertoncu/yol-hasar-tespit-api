@@ -62,7 +62,7 @@ fileInput.addEventListener('change', async (e) => {
         if (locResult.error === "İzin Reddedildi") {
             alert(
                 "Konum izni reddedildi!\n\n" +
-                "Lütfen adres çubuğundaki 'Kilit' veya 'aA' simgesine tıklayarak konum erişimine izin verin. (Linki WhatsApp'tan açtıysanız normal Safari/Chrome'a geçin)."
+                "Lütfen adres çubuğundaki 'Kilit' veya 'Yazı' simgesine tıklayarak konum erişimine izin verin. (Linki WhatsApp'tan açtıysanız normal Safari/Chrome'a geçin)."
             );
         } else {
             alert(`Sistem hatası: ${locResult.error}. Lütfen cihazınızın konum servislerinin açık olduğundan emin olun.`);
