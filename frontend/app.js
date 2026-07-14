@@ -135,7 +135,7 @@ sendBtn.addEventListener('click', async () => {
             body: JSON.stringify({ session_id: sessionId, location: lastLocation })
         });
         if (response.ok) {
-            alert("Rapor başarıyla iletildi!");
+            alert("Rapor belediyeye başarıyla iletildi! Katkılarınız için teşekkür ederiz.");
             location.reload();
         }
     } catch (err) { alert("Rapor gönderilemedi."); }
