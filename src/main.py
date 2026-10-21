@@ -1,4 +1,5 @@
 import os
+import shutil
 import time
 import jwt
 from fastapi import FastAPI, UploadFile, File, Header, HTTPException, Depends
@@ -10,15 +11,13 @@ from src.detector import detector
 from src.gps_resolver import get_live_location
 from src.utils import annotate_and_save, log_incident, is_duplicate_pothole
 
-# .env yükle
 load_dotenv()
 SECRET_KEY = os.getenv("SECRET_KEY", "varsayilan_cok_gizli_anahtar")
 ALGORITHM = "HS256"
 
-app = FastAPI(title=os.getenv("PROJECT_NAME", "Arac Takip Sistemi"))
+app = FastAPI(title=os.getenv("PROJECT_NAME", "Araç Takip Sistemi"))
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="token")
 
-# --- GÜVENLİK KATMANI ---
 async def verify_vehicle_jwt(token: str = Depends(oauth2_scheme)):
     try:
         payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
@@ -29,11 +28,10 @@ async def verify_vehicle_jwt(token: str = Depends(oauth2_scheme)):
     except Exception:
         raise HTTPException(status_code=401, detail="Token doğrulaması başarısız.")
 
-# --- ENDPOINT ---
 @app.post("/api/v1/vehicle/stream")
 async def receive_camera_stream(
     file: UploadFile = File(...),
-    vehicle_id: str = Depends(verify_vehicle_jwt) # Artık güvenli
+    vehicle_id: str = Depends(verify_vehicle_jwt)
 ):
     os.makedirs(settings.TEMP_DIR, exist_ok=True)
     timestamp = int(time.time() * 1000)

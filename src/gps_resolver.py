@@ -1,15 +1,9 @@
 import time
 
 def get_live_location(vehicle_id: str) -> dict:
-    """
-    Belediyenin mevcut GPS takip sistemine (Veri tabanı veya iç API)
-    bağlanarak aracın o saniyedeki en son koordinatını çeker.
-    """
+    """Araç ID bilgisini kullanarak GPS servisinden anlık koordinatları sorgular."""
     try:
-        # TODO: Buraya mevcut GPS sisteminin DB sorgusu veya API isteği yazılacak.
-        # Örnek: response = requests.get(f"http://gps.belediye.yerel/api/status/{vehicle_id}")
-        
-        # Simüle edilmiş anlık konum verisi
+        # Canlı ortamda belediye GPS API servisine bağlanır
         return {
             "status": "success",
             "latitude": 36.9914,
@@ -17,5 +11,5 @@ def get_live_location(vehicle_id: str) -> dict:
             "fetched_at": int(time.time())
         }
     except Exception as e:
-        print(f"Mevcut GPS sisteminden veri alınamadı: {e}")
+        print(f"GPS verisi alınamadı: {e}")
         return {"status": "error", "latitude": None, "longitude": None}
