@@ -1,8 +1,0 @@
-{
-  "rewrites": [
-    {
-      "source": "/api/:path*",
-      "destination": "https://vowel-amaze-cackle.ngrok-free.dev/:path*"
-    }
-  ]
-}
