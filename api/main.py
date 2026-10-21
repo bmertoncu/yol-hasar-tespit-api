@@ -1,4 +1,6 @@
 import os
+import re
+import uuid
 import shutil
 import time
 from fastapi import FastAPI, UploadFile, File, Request, HTTPException, Header
@@ -13,8 +15,15 @@ from slowapi.errors import RateLimitExceeded
 load_dotenv()
 FRONTEND_URL = os.getenv("FRONTEND_URL")
 
+# Ngrok / Ters Proxy arkasındaki gerçek kullanıcı IP'sini alma fonksiyonu
+def get_real_ip(request: Request) -> str:
+    forwarded = request.headers.get("x-forwarded-for")
+    if forwarded:
+        return forwarded.split(",")[0].strip()
+    return get_remote_address(request)
+
 # Hız sınırlayıcı (Dakikada en fazla 10 analiz)
-limiter = Limiter(key_func=get_remote_address)
+limiter = Limiter(key_func=get_real_ip)
 app = FastAPI()
 app.state.limiter = limiter
 app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
@@ -31,7 +40,7 @@ MAX_FILE_SIZE = 5 * 1024 * 1024  # 5 MB sınır
 
 def validate_image(file: UploadFile):
     # Uzantı kontrolü
-    if not file.filename.lower().endswith(('.png', '.jpg', '.jpeg')):
+    if not file.filename or not file.filename.lower().endswith(('.png', '.jpg', '.jpeg')):
         raise HTTPException(status_code=400, detail="Sadece PNG veya JPG formatı kabul edilir.")
     # Boyut kontrolü
     file.file.seek(0, os.SEEK_END)
@@ -40,6 +49,12 @@ def validate_image(file: UploadFile):
     if file_size > MAX_FILE_SIZE:
         raise HTTPException(status_code=400, detail="Görsel boyutu çok büyük (Max 5MB).")
 
+def sanitize_str(val: str, max_len: int = 64) -> str:
+    if not isinstance(val, str):
+        return "unknown"
+    cleaned = re.sub(r"[^a-zA-Z0-9_,.-]", "", val)
+    return cleaned[:max_len] if cleaned else "unknown"
+
 # --- ENDPOINTLER ---
 
 @app.post("/predict")
@@ -47,9 +62,10 @@ def validate_image(file: UploadFile):
 async def predict(request: Request, file: UploadFile = File(...), x_session_id: str = Header(None)):
     validate_image(file) # İçerik filtresi
     
-    session_id = x_session_id if x_session_id else "unknown"
-    os.makedirs("temp_images", exist_ok=True) 
-    file_path = os.path.join("temp_images", f"{session_id}.jpg")
+    os.makedirs("temp_images", exist_ok=True)
+    # Path traversal ve çakışma riskini önlemek için benzersiz UUID dosya adı
+    safe_filename = f"{uuid.uuid4().hex}.jpg"
+    file_path = os.path.join("temp_images", safe_filename)
     
     with open(file_path, "wb") as buffer:
         shutil.copyfileobj(file.file, buffer)
@@ -66,8 +82,8 @@ async def predict(request: Request, file: UploadFile = File(...), x_session_id: 
 @limiter.limit("5/minute") # Rapor spam'ini engeller
 async def report(request: Request):
     data = await request.json()
-    session_id = data.get("session_id", "unknown")
-    location = data.get("location", "unknown")
+    session_id = sanitize_str(data.get("session_id", "unknown"), 32)
+    location = sanitize_str(data.get("location", "unknown"), 64)
     
     with open("app_log.txt", "a", encoding="utf-8") as f:
         f.write(f"{time.ctime()} | RAPORLANDI | User: Vatandas | Session: {session_id} | Loc: {location}\n")
